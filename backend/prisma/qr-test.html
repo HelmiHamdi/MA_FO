@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Badge — Test Local</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0a1e;
+    color: #fff;
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+  h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; color: #c084fc; }
+  .sub { font-size: 13px; color: rgba(255,255,255,0.45); margin-bottom: 24px; }
+  label { font-size: 12px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 6px; }
+  select, input {
+    width: 100%;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    color: #fff;
+    padding: 10px 12px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    outline: none;
+  }
+  select option { background: #1a0a2e; color: #fff; }
+  .qr-box {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  #qr-output { display: flex; justify-content: center; }
+  .participant-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4a0e6e;
+    text-align: center;
+  }
+  .participant-id {
+    font-size: 10px;
+    color: #888;
+    font-family: monospace;
+    text-align: center;
+  }
+  .token-box {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 10px;
+    font-family: monospace;
+    word-break: break-all;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  button {
+    width: 100%;
+    background: #7c3aed;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+  button.secondary {
+    background: rgba(255,255,255,0.08);
+    font-weight: 400;
+  }
+  .status {
+    font-size: 13px;
+    color: #34d399;
+    text-align: center;
+    min-height: 20px;
+    margin-top: 8px;
+  }
+  .instructions {
+    background: rgba(124,58,237,0.1);
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.7;
+    margin-top: 20px;
+  }
+  .instructions strong { color: #c084fc; }
+</style>
+</head>
+<body>
+
+<h1>🔖 QR Badge — Test Local</h1>
+<p class="sub">Génère un vrai QR code pour tester le scan dans ton app</p>
+
+<label>Participant (seed)</label>
+<select id="participantSelect">
+  <option value="p-001|Ahmed Ben Ali|CEO TechStart TN">p-001 — Ahmed Ben Ali (CEO)</option>
+  <option value="p-002|Fatma Mansour|Investment Director">p-002 — Fatma Mansour (VC)</option>
+  <option value="p-003|Karim Dridi|CTO Innov Africa">p-003 — Karim Dridi (CTO)</option>
+  <option value="p-004|Leila Chaabane|Marketing Director">p-004 — Leila Chaabane (Marketing)</option>
+  <option value="p-005|Mehdi Ben Salah|Product Manager">p-005 — Mehdi Ben Salah (PM)</option>
+  <option value="p-006|Helmi Hamdi|Étudiant FST">p-006 — Helmi Hamdi (Étudiant)</option>
+  <option value="p-007|Mohamed Ali Hamdi|Dev Freelance">p-007 — Mohamed Ali Hamdi (Dev)</option>
+  <option value="p-008|Helmi Hamdi|Lead Dev VIP" selected>p-008 — Helmi Hamdi (Lead Dev VIP) ⭐</option>
+</select>
+
+<label>QR_BADGE_SECRET (doit matcher ton .env)</label>
+<input type="text" id="secretInput" value="ce43426d4ada34de636d9418188f5fb9" />
+
+<div class="qr-box">
+  <div id="qr-output"></div>
+  <div class="participant-name" id="pName">Helmi Hamdi — Lead Dev VIP</div>
+  <div class="participant-id" id="pId">id: p-008</div>
+</div>
+
+<div class="token-box" id="tokenBox">Génération en cours...</div>
+
+<button onclick="generate()">🔄 Régénérer le QR</button>
+<button class="secondary" onclick="copyToken()">📋 Copier le token</button>
+
+<div class="status" id="status"></div>
+
+<div class="instructions">
+  <strong>Comment tester :</strong><br>
+  1. Ouvre ce fichier sur ton <strong>téléphone</strong> (via l'IP locale de ton PC, ex: <code>http://192.168.x.x:PORT/qr-test.html</code>)<br>
+  2. Affiche ce QR sur ton téléphone<br>
+  3. Pointe la caméra de ton <strong>PC</strong> vers l'écran du téléphone<br><br>
+  <strong>Ou plus simple :</strong> copie le token et teste via Postman :<br>
+  <code>POST /api/v1/auth/qr/login {"qrToken": "..."}</code>
+</div>
+
+<script>
+let currentToken = '';
+
+// ✅ CORRIGÉ — IV déterministe basé sur participantId (même que le backend Node.js)
+// Backend utilise : crypto.createHash('md5').update(participantId).digest()
+// Ici on reproduit exactement la même logique avec SubtleCrypto
+
+async function md5Iv(participantId) {
+  // MD5 via SubtleCrypto n'est pas disponible directement
+  // On utilise une implémentation pure JS de MD5 pour reproduire exactement le backend
+  const enc = new TextEncoder();
+  const data = enc.encode(participantId);
+  return md5Bytes(data); // retourne Uint8Array 16 bytes
+}
+
+// MD5 pur JS (reproduit exactement crypto.createHash('md5').update(id).digest() de Node.js)
+function md5Bytes(input) {
+  function safeAdd(x, y) {
+    const lsw = (x & 0xffff) + (y & 0xffff);
+    const msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+    return (msw << 16) | (lsw & 0xffff);
+  }
+  function bitRotateLeft(num, cnt) { return (num << cnt) | (num >>> (32 - cnt)); }
+  function md5cmn(q, a, b, x, s, t) { return safeAdd(bitRotateLeft(safeAdd(safeAdd(a, q), safeAdd(x, t)), s), b); }
+  function md5ff(a, b, c, d, x, s, t) { return md5cmn((b & c) | (~b & d), a, b, x, s, t); }
+  function md5gg(a, b, c, d, x, s, t) { return md5cmn((b & d) | (c & ~d), a, b, x, s, t); }
+  function md5hh(a, b, c, d, x, s, t) { return md5cmn(b ^ c ^ d, a, b, x, s, t); }
+  function md5ii(a, b, c, d, x, s, t) { return md5cmn(c ^ (b | ~d), a, b, x, s, t); }
+
+  const bytes = input;
+  const length8 = bytes.length;
+  const extra = ((length8 + 8) >>> 6 << 4) + 16;
+  const padded = new Int32Array(extra);
+  for (let i = 0; i < extra; i++) padded[i] = 0;
+  let i;
+  for (i = 0; i < length8; i++) {
+    padded[i >> 2] |= bytes[i] << ((i % 4) * 8);
+  }
+  padded[i >> 2] |= 0x80 << ((i % 4) * 8);
+  padded[extra - 2] = length8 * 8;
+
+  let a = 1732584193, b = -271733879, c = -1732584194, d = 271733878;
+  const M = padded;
+
+  for (let k = 0; k < extra; k += 16) {
+    const aa = a, bb = b, cc = c, dd = d;
+    a = md5ff(a,b,c,d,M[k+0],7,-680876936);   d=md5ff(d,a,b,c,M[k+1],12,-389564586);
+    c = md5ff(c,d,a,b,M[k+2],17,606105819);   b=md5ff(b,c,d,a,M[k+3],22,-1044525330);
+    a = md5ff(a,b,c,d,M[k+4],7,-176418897);   d=md5ff(d,a,b,c,M[k+5],12,1200080426);
+    c = md5ff(c,d,a,b,M[k+6],17,-1473231341); b=md5ff(b,c,d,a,M[k+7],22,-45705983);
+    a = md5ff(a,b,c,d,M[k+8],7,1770035416);   d=md5ff(d,a,b,c,M[k+9],12,-1958414417);
+    c = md5ff(c,d,a,b,M[k+10],17,-42063);     b=md5ff(b,c,d,a,M[k+11],22,-1990404162);
+    a = md5ff(a,b,c,d,M[k+12],7,1804603682);  d=md5ff(d,a,b,c,M[k+13],12,-40341101);
+    c = md5ff(c,d,a,b,M[k+14],17,-1502002290);b=md5ff(b,c,d,a,M[k+15],22,1236535329);
+    a = md5gg(a,b,c,d,M[k+1],5,-165796510);   d=md5gg(d,a,b,c,M[k+6],9,-1069501632);
+    c = md5gg(c,d,a,b,M[k+11],14,643717713);  b=md5gg(b,c,d,a,M[k+0],20,-373897302);
+    a = md5gg(a,b,c,d,M[k+5],5,-701558691);   d=md5gg(d,a,b,c,M[k+10],9,38016083);
+    c = md5gg(c,d,a,b,M[k+15],14,-660478335); b=md5gg(b,c,d,a,M[k+4],20,-405537848);
+    a = md5gg(a,b,c,d,M[k+9],5,568446438);    d=md5gg(d,a,b,c,M[k+14],9,-1019803690);
+    c = md5gg(c,d,a,b,M[k+3],14,-187363961);  b=md5gg(b,c,d,a,M[k+8],20,1163531501);
+    a = md5gg(a,b,c,d,M[k+13],5,-1444681467); d=md5gg(d,a,b,c,M[k+2],9,-51403784);
+    c = md5gg(c,d,a,b,M[k+7],14,1735328473);  b=md5gg(b,c,d,a,M[k+12],20,-1926607734);
+    a = md5hh(a,b,c,d,M[k+5],4,-378558);      d=md5hh(d,a,b,c,M[k+8],11,-2022574463);
+    c = md5hh(c,d,a,b,M[k+11],16,1839030562); b=md5hh(b,c,d,a,M[k+14],23,-35309556);
+    a = md5hh(a,b,c,d,M[k+1],4,-1530992060);  d=md5hh(d,a,b,c,M[k+4],11,1272893353);
+    c = md5hh(c,d,a,b,M[k+7],16,-155497632);  b=md5hh(b,c,d,a,M[k+10],23,-1094730640);
+    a = md5hh(a,b,c,d,M[k+13],4,681279174);   d=md5hh(d,a,b,c,M[k+0],11,-358537222);
+    c = md5hh(c,d,a,b,M[k+3],16,-722521979);  b=md5hh(b,c,d,a,M[k+6],23,76029189);
+    a = md5hh(a,b,c,d,M[k+9],4,-640364487);   d=md5hh(d,a,b,c,M[k+12],11,-421815835);
+    c = md5hh(c,d,a,b,M[k+15],16,530742520);  b=md5hh(b,c,d,a,M[k+2],23,-995338651);
+    a = md5ii(a,b,c,d,M[k+0],6,-198630844);   d=md5ii(d,a,b,c,M[k+7],10,1126891415);
+    c = md5ii(c,d,a,b,M[k+14],15,-1416354905);b=md5ii(b,c,d,a,M[k+5],21,-57434055);
+    a = md5ii(a,b,c,d,M[k+12],6,1700485571);  d=md5ii(d,a,b,c,M[k+3],10,-1894986606);
+    c = md5ii(c,d,a,b,M[k+10],15,-1051523);   b=md5ii(b,c,d,a,M[k+1],21,-2054922799);
+    a = md5ii(a,b,c,d,M[k+8],6,1873313359);   d=md5ii(d,a,b,c,M[k+15],10,-30611744);
+    c = md5ii(c,d,a,b,M[k+6],15,-1560198380); b=md5ii(b,c,d,a,M[k+13],21,1309151649);
+    a = md5ii(a,b,c,d,M[k+4],6,-145523070);   d=md5ii(d,a,b,c,M[k+11],10,-1120210379);
+    c = md5ii(c,d,a,b,M[k+2],15,718787259);   b=md5ii(b,c,d,a,M[k+9],21,-343485551);
+    a = safeAdd(a,aa); b = safeAdd(b,bb); c = safeAdd(c,cc); d = safeAdd(d,dd);
+  }
+
+  // Convertir en Uint8Array 16 bytes (little-endian comme Node.js)
+  const result = new Uint8Array(16);
+  const vals = [a, b, c, d];
+  for (let i = 0; i < 4; i++) {
+    result[i*4+0] = (vals[i]) & 0xff;
+    result[i*4+1] = (vals[i] >> 8) & 0xff;
+    result[i*4+2] = (vals[i] >> 16) & 0xff;
+    result[i*4+3] = (vals[i] >> 24) & 0xff;
+  }
+  return result;
+}
+
+async function encryptQrToken(participantId, secret) {
+  const enc = new TextEncoder();
+  // Secret padEnd(32) exactement comme Node.js
+  const secretStr = secret.padEnd(32).slice(0, 32);
+  const secretBytes = enc.encode(secretStr);
+
+  const key = await crypto.subtle.importKey(
+    'raw', secretBytes, { name: 'AES-CBC' }, false, ['encrypt']
+  );
+
+  // ✅ IV déterministe = MD5(participantId) — identique au backend
+  const iv = await md5Iv(participantId);
+
+  const data = enc.encode(participantId);
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-CBC', iv }, key, data);
+
+  const toHex = (bytes) => Array.from(new Uint8Array(bytes))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+
+  return toHex(iv) + ':' + toHex(new Uint8Array(encrypted));
+}
+
+async function generate() {
+  const sel = document.getElementById('participantSelect');
+  const parts = sel.value.split('|');
+  const id = parts[0];
+  const name = parts[1];
+  const role = parts[2];
+  const secret = document.getElementById('secretInput').value || 'dev_secret_key_for_testing_only';
+
+  document.getElementById('status').textContent = 'Génération...';
+
+  const token = await encryptQrToken(id, secret);
+  currentToken = token;
+
+  document.getElementById('tokenBox').textContent = token;
+  document.getElementById('pName').textContent = name + ' — ' + role;
+  document.getElementById('pId').textContent = 'id: ' + id;
+
+  const container = document.getElementById('qr-output');
+  container.innerHTML = '';
+
+  try {
+    new QRCode(container, {
+      text: token,
+      width: 220,
+      height: 220,
+      colorDark: '#1a0033',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M,
+    });
+    document.getElementById('status').textContent = '✓ QR prêt — pointez la webcam de votre PC ici';
+  } catch(e) {
+    container.textContent = 'Erreur génération QR';
+    document.getElementById('status').textContent = '⚠ Erreur: ' + e.message;
+  }
+}
+
+function copyToken() {
+  if (!currentToken) return;
+  navigator.clipboard.writeText(currentToken).then(() => {
+    document.getElementById('status').textContent = '✓ Token copié dans le presse-papiers !';
+    setTimeout(() => {
+      document.getElementById('status').textContent = '';
+    }, 3000);
+  });
+}
+
+window.addEventListener('load', generate);
+document.getElementById('participantSelect').addEventListener('change', generate);
+document.getElementById('secretInput').addEventListener('change', generate);
+</script>
+
+</body>
+</html>

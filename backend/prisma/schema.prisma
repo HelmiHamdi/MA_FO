@@ -1,0 +1,297 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Participant {
+  id                      String          @id @default(uuid())
+  email                   String          @unique
+  phone                   String?         @unique
+  firstName               String
+  lastName                String
+  jobTitle                String?
+  company                 String?
+  sector                  String?
+  country                 String?
+  bio                     String?         @db.Text
+  bioEn                   String?         @db.Text
+  photoUrl                String?
+  linkedinUrl             String?
+  websiteUrl              String?
+  tags                    String?         @db.Text
+  profileType             ProfileType     @default(STANDARD)
+  isActive                Boolean         @default(false)
+  isProfilePublic         Boolean         @default(true)
+  language                String          @default("FR")
+  badgeQrToken            String?         @unique
+  meetingMessage          String?         @db.Text
+  linkedinConnected       Boolean         @default(false)
+  linkedinAccessToken     String?         @db.Text
+  linkedinData            String?         @db.Text
+  vectorizedAt            DateTime?
+  embeddingVector         String?         @db.LongText
+  matchScore              Float           @default(0)
+  visibilityScore         Float           @default(0)
+  pushSubscription        String?         @db.Text
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  connectionsAsA          Connection[]    @relation("ConnectionA")
+  connectionsAsB          Connection[]    @relation("ConnectionB")
+  ratingsGiven            MeetingRating[] @relation("RaterParticipant")
+  meetingRequestsReceived Meeting[]       @relation("MeetingReceiver")
+  meetingRequestsSent     Meeting[]       @relation("MeetingRequester")
+  notifications           Notification[]
+  otpCodes                OtpCode[]
+  refreshTokens           RefreshToken[]
+  swipeBatches            SwipeBatch[]
+  swipesReceived          Swipe[]         @relation("SwipeReceiver")
+  swipesSent              Swipe[]         @relation("SwipeSender")
+
+  @@map("participants")
+}
+
+model OtpCode {
+  id            String      @id @default(uuid())
+  participantId String
+  code          String
+  method        OtpMethod
+  status        OtpStatus   @default(PENDING)
+  attempts      Int         @default(0)
+  expiresAt     DateTime
+  lockedUntil   DateTime?
+  createdAt     DateTime    @default(now())
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@index([participantId])
+  @@map("otp_codes")
+}
+
+model RefreshToken {
+  id            String      @id @default(uuid())
+  participantId String
+  token         String      @unique @db.VarChar(512)
+  expiresAt     DateTime
+  revoked       Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@index([participantId])
+  @@map("refresh_tokens")
+}
+
+model SwipeBatch {
+  id            String      @id @default(uuid())
+  participantId String
+  profileIds    String      @db.Text
+  totalCount    Int         @default(10)
+  swipedCount   Int         @default(0)
+  isComplete    Boolean     @default(false)
+  notifiedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  swipes        Swipe[]
+
+  @@index([participantId])
+  @@map("swipe_batches")
+}
+
+model Swipe {
+  id            String      @id @default(uuid())
+  batchId       String
+  senderId      String
+  receiverId    String
+  action        SwipeAction
+  aiExplanation String?     @db.Text
+  matchScore    Float?
+  createdAt     DateTime    @default(now())
+  batch         SwipeBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  receiver      Participant @relation("SwipeReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender        Participant @relation("SwipeSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([batchId], map: "swipes_batchId_fkey")
+  @@map("swipes")
+}
+
+model Connection {
+  id             String           @id @default(uuid())
+  participantAId String
+  participantBId String
+  type           ConnectionType
+  status         ConnectionStatus @default(PENDING)
+  initiatedBy    String
+  aiExplanation  String?          @db.Text
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  participantA   Participant      @relation("ConnectionA", fields: [participantAId], references: [id], onDelete: Cascade)
+  participantB   Participant      @relation("ConnectionB", fields: [participantBId], references: [id], onDelete: Cascade)
+
+  @@unique([participantAId, participantBId])
+  @@index([participantAId])
+  @@index([participantBId])
+  @@map("connections")
+}
+
+model TimeSlot {
+  id          String    @id @default(uuid())
+  eventDay    DateTime  @db.Date
+  startTime   DateTime
+  endTime     DateTime
+  tableId     String?
+  isAvailable Boolean   @default(true)
+  meetings    Meeting[]
+  table       Table?    @relation(fields: [tableId], references: [id])
+
+  @@index([tableId])
+  @@map("time_slots")
+}
+
+model Table {
+  id        String     @id @default(uuid())
+  number    Int
+  room      String
+  qrToken   String     @unique
+  isActive  Boolean    @default(true)
+  meetings  Meeting[]
+  timeSlots TimeSlot[]
+
+  @@map("tables")
+}
+
+model Meeting {
+  id             String           @id @default(uuid())
+  requesterId    String
+  receiverId     String
+  slotId         String?
+  tableId        String?
+  status         MeetingStatus    @default(PENDING)
+  createdBy      MeetingCreatedBy @default(PARTICIPANT)
+  requestMessage String?          @db.Text
+  refuseReason   String?
+  confirmedAt    DateTime?
+  cancelledAt    DateTime?
+  completedAt    DateTime?
+  qrConfirmedBy  String?
+  qrConfirmedAt  DateTime?
+  conversationId String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  ratings        MeetingRating[]
+  receiver       Participant      @relation("MeetingReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  requester      Participant      @relation("MeetingRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  slot           TimeSlot?        @relation(fields: [slotId], references: [id])
+  table          Table?           @relation(fields: [tableId], references: [id])
+
+  @@index([requesterId])
+  @@index([receiverId])
+  @@index([slotId])
+  @@index([tableId], map: "meetings_tableId_fkey")
+  @@map("meetings")
+}
+
+model MeetingRating {
+  id          String      @id @default(uuid())
+  meetingId   String
+  raterId     String
+  stars       Int
+  comment     String?     @db.VarChar(200)
+  isSubmitted Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  meeting     Meeting     @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  rater       Participant @relation("RaterParticipant", fields: [raterId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, raterId])
+  @@index([meetingId])
+  @@index([raterId], map: "meeting_ratings_raterId_fkey")
+  @@map("meeting_ratings")
+}
+
+model Notification {
+  id            String           @id @default(uuid())
+  participantId String
+  type          NotificationType
+  title         String
+  body          String
+  deepLink      String?
+  isRead        Boolean          @default(false)
+  metadata      String?          @db.Text
+  createdAt     DateTime         @default(now())
+  participant   Participant      @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@index([participantId])
+  @@map("notifications")
+}
+
+enum OtpMethod {
+  EMAIL
+  PHONE
+}
+
+enum OtpStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+  LOCKED
+}
+
+enum SwipeAction {
+  RIGHT
+  LEFT
+}
+
+enum ConnectionType {
+  MATCHED
+  CONNECTED
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum MeetingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  RESCHEDULED
+}
+
+enum MeetingCreatedBy {
+  PARTICIPANT
+  ADMIN
+}
+
+enum NotificationType {
+  NEW_SWIPE_BATCH
+  MUTUAL_MATCH
+  CONNECTION_REQUEST_RECEIVED
+  CONNECTION_REQUEST_ACCEPTED
+  MEETING_REQUEST_RECEIVED
+  MEETING_CONFIRMED
+  MEETING_REFUSED
+  MEETING_REMINDER
+  NEW_MESSAGE
+  MEETING_CANCELLED
+  MEETING_RESCHEDULED
+  POST_MEETING_RATING
+  BEHAVIORAL_NUDGE
+  PROFILE_VECTORIZED
+  ACCOUNT_ACTIVATED
+}
+
+enum ProfileType {
+  INSTITUTIONNEL
+  VIP
+  OPERATEUR
+  MEDIA
+  STANDARD
+}

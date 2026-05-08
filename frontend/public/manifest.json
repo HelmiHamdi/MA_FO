@@ -1,0 +1,16 @@
+{
+  "name": "Matchmaking App",
+  "short_name": "MA_FO",
+  "description": "Où les âmes se rencontrent",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f0ff",
+  "theme_color": "#4a0e6e",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
