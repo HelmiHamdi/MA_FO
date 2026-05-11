@@ -1,5 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/agenda",
+        destination: "/meetings",
+        permanent: true,
+      },
+    ];
+  },
+
   images: {
     remotePatterns: [
       // ✅ Cloudinary (production + dev)
@@ -27,6 +37,7 @@ const nextConfig = {
       },
     ],
   },
+
   env: {
     NEXT_PUBLIC_API_URL:
       process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1",

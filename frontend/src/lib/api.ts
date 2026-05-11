@@ -43,7 +43,6 @@ api.interceptors.response.use(
     };
     const status = error.response?.status;
 
-    // Routes publiques auth gérées par silentPost — pas de refresh à tenter
     const isPublicAuthRoute =
       originalRequest?.url?.includes("/auth/otp/") ||
       originalRequest?.url?.includes("/auth/qr/") ||
@@ -90,7 +89,6 @@ api.interceptors.response.use(
       }
     }
 
-    // Erreurs 500+ → logguer pour le debug, 4xx → silencieux
     if (status && status >= 500) {
       console.error(`[API Error ${status}]`, error.response?.data);
     }
@@ -119,8 +117,6 @@ export const clearAuth = () => {
 };
 
 // ─── Auth API ──────────────────────────────────────────────────────────────────
-// Routes publiques → silentPost (fetch natif, zéro log console)
-// Routes protégées → axios
 export const authApi = {
   requestEmailOtp: (email: string) =>
     silentPost("/auth/otp/email/request", { email }),
@@ -155,32 +151,82 @@ export const discoveryApi = {
   ) =>
     api.patch(`/discovery/connections/${connectionId}/respond`, { action }),
 };
-
+// ─── Connections API ───────────────────────────────────────────────────────────
+export const connectionsApi = {
+  /**
+   * 4.1 — Liste de toutes les connexions confirmées
+   * Retourne les connexions paginées avec preview du dernier message,
+   * compteur non-lu, et statut de réunion.
+   */
+  getAll: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    filter?: "all" | "with_meeting" | "without_meeting" | "unread";
+    sort?: "activity" | "name" | "meeting";
+  }) => api.get("/connections", { params }),
+ 
+  /**
+   * 4.2 — Profil complet d'une connexion
+   * Retourne : connection metadata + profil du participant + historique réunions
+   * + réunion en cours si existante.
+   */
+  getProfile: (connectionId: string) =>
+    api.get(`/connections/${connectionId}/profile`),
+ 
+  /**
+   * Annuler / retirer une connexion
+   */
+  remove: (connectionId: string) =>
+    api.delete(`/connections/${connectionId}`),
+};
+ 
 // ─── Meetings API ──────────────────────────────────────────────────────────────
 export const meetingsApi = {
+  /** 5.1 — Créneaux disponibles mutuellement */
   getAvailableSlots: (receiverId: string) =>
     api.get("/meetings/slots/available", { params: { receiverId } }),
+
+  /** 5.1 — Envoyer une demande de réunion */
   requestMeeting: (payload: {
     receiverId: string;
     slotId: string;
     message?: string;
   }) => api.post("/meetings/request", payload),
+
+  /** 5.1 — Pré-générer un message IA */
+  generateMessage: (receiverId: string) =>
+    api.get(`/meetings/generate-message/${receiverId}`),
+
+  /** 5.2 — Accepter ou refuser une demande */
   respondToMeeting: (
     meetingId: string,
     action: "CONFIRMED" | "CANCELLED",
     reason?: string,
   ) => api.patch(`/meetings/${meetingId}/respond`, { action, reason }),
+
+  /** 5.3 — Mon agenda */
   getMyAgenda: () => api.get("/meetings/agenda"),
+
+  /** 5.3 — Annuler une réunion */
   cancelMeeting: (meetingId: string) =>
     api.patch(`/meetings/${meetingId}/cancel`),
+
+  /** 5.3 — Reprogrammer une réunion (newSlotId requis) */
   rescheduleMeeting: (meetingId: string, newSlotId: string) =>
     api.patch(`/meetings/${meetingId}/reschedule`, { newSlotId }),
+
+  /** 5.4 — Évaluer une réunion */
   rateMeeting: (meetingId: string, stars: number, comment?: string) =>
     api.post(`/meetings/${meetingId}/rate`, { stars, comment }),
+
+  /** 5.5 — Confirmer la présence physique par QR */
   confirmTableQr: (meetingId: string, qrToken: string) =>
     api.post("/meetings/confirm-table-qr", { meetingId, qrToken }),
-  generateMessage: (receiverId: string) =>
-    api.get(`/meetings/generate-message/${receiverId}`),
+
+  /** Détail d'une réunion */
+  getMeetingById: (meetingId: string) =>
+    api.get(`/meetings/${meetingId}`),
 };
 
 // ─── Profile API ───────────────────────────────────────────────────────────────
@@ -198,6 +244,7 @@ export const profileApi = {
     api.post("/profile/me/photo", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
+  markPromptSeen: () => api.patch("/profile/me/prompt-seen"),
 };
 
 // ─── Notifications API ─────────────────────────────────────────────────────────
@@ -210,4 +257,41 @@ export const notificationsApi = {
     api.patch(`/notifications/${notificationId}/read`),
   registerPush: (subscription: object) =>
     api.post("/notifications/push/subscribe", { subscription }),
+};
+
+// ─── AJOUT à src/lib/api.ts ────────────────────────────────────────────────────
+// Ajouter ce bloc à la suite des autres exports dans api.ts
+
+export const chatApi = {
+  /**
+   * 6.2 — Liste des conversations (inbox)
+   */
+  getConversations: () => api.get("/chat/conversations"),
+
+  /**
+   * Total messages non lus (badge global)
+   */
+  getUnreadCount: () => api.get("/chat/unread-count"),
+
+  /**
+   * 6.1 — Charger les messages d'une conversation (cursor pagination)
+   */
+  getMessages: (
+    conversationId: string,
+    params?: { before?: string; limit?: number },
+  ) => api.get(`/chat/${conversationId}/messages`, { params }),
+
+  /**
+   * 6.1 — Envoyer un message
+   */
+  sendMessage: (
+    conversationId: string,
+    payload: { content: string; type?: "TEXT" | "SYSTEM"; metadata?: string },
+  ) => api.post(`/chat/${conversationId}/messages`, payload),
+
+  /**
+   * 6.1 — Marquer les messages comme lus
+   */
+  markRead: (conversationId: string, lastReadMessageId: string) =>
+    api.patch(`/chat/${conversationId}/read`, { lastReadMessageId }),
 };

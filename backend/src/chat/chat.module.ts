@@ -1,0 +1,28 @@
+
+// src/chat/chat.module.ts
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ChatController } from './chat.controller';
+import { ChatService } from './chat.service';
+import { ChatGateway } from './chat.gateway';
+import { PrismaModule } from '../prisma/prisma.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+
+@Module({
+  imports: [
+    PrismaModule,
+    NotificationsModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get('JWT_SECRET'),
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  controllers: [ChatController],
+  providers: [ChatService, ChatGateway],
+  exports: [ChatService, ChatGateway],
+})
+export class ChatModule {}

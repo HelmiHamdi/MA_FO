@@ -33,30 +33,32 @@ export const useAuthStore = create<AuthState>()(
           participant,
           isAuthenticated: true,
           isFirstLogin: flags.isFirstLogin ?? false,
-          needsProfileCompletion: flags.needsProfileCompletion ?? false,
+          // ✅ utilise hasSeenProfilePrompt du participant si pas de flag explicite
+          needsProfileCompletion:
+            flags.needsProfileCompletion ?? !participant.hasSeenProfilePrompt,
         });
       },
 
       updateParticipant: (data) =>
-        set((state) => ({
-          participant: state.participant
+        set((state) => {
+          const updated = state.participant
             ? { ...state.participant, ...data }
-            : null,
-          // Recalculer needsProfileCompletion après mise à jour du profil
-          needsProfileCompletion: state.participant
-            ? !{ ...state.participant, ...data }.photoUrl ||
-              !{ ...state.participant, ...data }.bio ||
-              !{ ...state.participant, ...data }.tags
-            : false,
-        })),
+            : null;
+          return {
+            participant: updated,
+            // ✅ si hasSeenProfilePrompt devient true → plus besoin de complétion
+            needsProfileCompletion: updated
+              ? !updated.hasSeenProfilePrompt
+              : false,
+          };
+        }),
 
-      // FIX: appeler l'API avant de vider l'état local
       logout: async () => {
         const refreshToken = Cookies.get("refreshToken");
         try {
           await authApi.logout(refreshToken);
         } catch {
-          // Silencieux — on déconnecte localement quoi qu'il arrive
+          // Silencieux
         } finally {
           clearAuth();
           set({
@@ -70,7 +72,6 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "ma-fo-auth",
-      // FIX: persister aussi les flags pour survivre à un F5
       partialize: (state) => ({
         participant: state.participant,
         isAuthenticated: state.isAuthenticated,

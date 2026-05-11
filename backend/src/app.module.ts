@@ -13,6 +13,12 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { ProfileModule } from './profile/profile.module';
+import { ConnectionsService } from './connections/connections.service';
+import { ConnectionsModule } from './connections/connections.module';
+import { ChatController } from './chat/chat.controller';
+import { ChatService } from './chat/chat.service';
+import { ChatModule } from './chat/chat.module';
+import { TablesModule } from './tables/tables.module';
 
 @Module({
   imports: [
@@ -43,6 +49,9 @@ import { ProfileModule } from './profile/profile.module';
     MeetingsModule,
     NotificationsModule,
     ProfileModule,
+    ConnectionsModule,
+    ChatModule,
+    TablesModule,
   ],
   providers: [
     // Guard JWT global — toutes les routes sont protégées sauf @Public()
@@ -60,6 +69,9 @@ import { ProfileModule } from './profile/profile.module';
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
     },
+    ConnectionsService,
+    ChatService,
   ],
+  controllers: [ChatController],
 })
 export class AppModule {}

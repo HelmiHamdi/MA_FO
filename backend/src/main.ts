@@ -6,6 +6,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 
 const compression = require('compression');
 
@@ -75,7 +76,7 @@ Toutes les routes (sauf /auth/*) nécessitent un Bearer token JWT.
 
     logger.log(`📚 Swagger: http://localhost:${port}/api/docs`);
   }
-
+ app.useWebSocketAdapter(new IoAdapter(app));
   await app.listen(port);
   logger.log(`🚀 Server running on http://localhost:${port}/api/v1`);
   logger.log(`🌍 Environment: ${nodeEnv}`);

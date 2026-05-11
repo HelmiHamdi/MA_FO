@@ -146,6 +146,22 @@ async function main() {
       isActive: false,
       visibilityScore: 0.95,
     },
+    {
+  id: 'p-011',
+  email: 'hammdihelmi@gmail.com',
+   phone: '+21625152460', 
+  firstName: 'Helmi',
+  lastName: 'Hamdi',
+  jobTitle: 'Développeur',
+  company: 'Matchmaking App',
+  sector: 'Tech',
+  country: 'TN',
+  bio: 'Développeur passionné.',
+  tags: JSON.stringify(['Tech', 'Innovation']),
+  profileType: ProfileType.STANDARD,
+  isActive: false,
+  visibilityScore: 0.8,
+},
   ];
 
   for (const p of participants) {

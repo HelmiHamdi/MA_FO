@@ -18,7 +18,12 @@ export interface OtpRequestResponse {
 
 // ─── PARTICIPANT ──────────────────────────────────────────────────────────────
 
-export type ProfileType = "INSTITUTIONNEL" | "VIP" | "OPERATEUR" | "MEDIA" | "STANDARD";
+export type ProfileType =
+  | "INSTITUTIONNEL"
+  | "VIP"
+  | "OPERATEUR"
+  | "MEDIA"
+  | "STANDARD";
 
 export interface Participant {
   id: string;
@@ -36,11 +41,13 @@ export interface Participant {
   linkedinUrl?: string;
   websiteUrl?: string;
   tags?: string;
+  meetingMessage?: string;
   profileType: ProfileType;
   isActive: boolean;
   isProfilePublic: boolean;
   language: string;
   linkedinConnected: boolean;
+  hasSeenProfilePrompt: boolean;
   visibilityScore: number;
   matchScore: number;
   createdAt: string;
@@ -50,7 +57,12 @@ export interface Participant {
 // ─── DISCOVERY ────────────────────────────────────────────────────────────────
 
 export type SwipeAction = "RIGHT" | "LEFT";
-export type ConnectionStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "NOT_CONNECTED" | "REQUEST_SENT";
+export type ConnectionStatus =
+  | "PENDING"
+  | "ACCEPTED"
+  | "REJECTED"
+  | "NOT_CONNECTED"
+  | "REQUEST_SENT";
 export type ConnectionType = "MATCHED" | "CONNECTED";
 
 export interface PublicProfile {
@@ -64,11 +76,12 @@ export interface PublicProfile {
   photoUrl?: string;
   tags?: string;
   profileType: ProfileType;
+  hasSeenProfilePrompt: boolean;
   visibilityScore: number;
   linkedinConnected: boolean;
   aiExplanation?: string;
   matchScore?: number;
-  connectionStatus?: ConnectionStatus;
+  connectionStatus?: "CONNECTED" | "REQUEST_SENT" | "NOT_CONNECTED";
 }
 
 export interface SwipeBatchResponse {
@@ -106,48 +119,156 @@ export interface Connection {
 
 export interface ViewAllResponse {
   data: PublicProfile[];
-  pagination: { page: number; limit: number; total: number; totalPages: number };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// ─── CONNECTIONS ─────────────────────────────────────────────────────────────
+
+export interface ConnectionListItem {
+  id: string;
+  otherParticipant: PublicProfile;
+  type: ConnectionType;
+  status: ConnectionStatus;
+  lastMessage?: {
+    content: string;
+    createdAt: string;
+    isRead: boolean;
+  } | null;
+  unreadCount: number;
+  meetingStatus: "NONE" | "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+  meetingId?: string | null;
+  conversationId?: string | null;
+  createdAt: string;
+}
+
+export interface ConnectionsResponse {
+  data: ConnectionListItem[];
+  pagination: Pagination;
 }
 
 // ─── MEETINGS ─────────────────────────────────────────────────────────────────
 
-export type MeetingStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED" | "RESCHEDULED";
+export type MeetingStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "CANCELLED"
+  | "COMPLETED"
+  | "RESCHEDULED";
+
+export type MeetingCreatedBy = "PARTICIPANT" | "ADMIN";
 
 export interface TimeSlot {
   id: string;
   startTime: string;
   endTime: string;
-  table?: { number: number; room: string };
+  isAvailable?: boolean;
+  table?: {
+    id?: string;
+    number: number;
+    room: string;
+  } | null;
+}
+
+export interface TableInfo {
+  number: number;
+  room: string;
 }
 
 export interface Meeting {
   id: string;
   status: MeetingStatus;
-  createdBy: "PARTICIPANT" | "ADMIN";
-  requestMessage?: string;
-  confirmedAt?: string;
-  cancelledAt?: string;
-  completedAt?: string;
-  slot?: TimeSlot;
-  table?: { number: number; room: string };
-  requester?: Partial<Participant>;
-  receiver?: Partial<Participant>;
+  statusLabel?: string;
+  createdBy: MeetingCreatedBy;
+  requestMessage?: string | null;
+  refuseReason?: string | null;
+  confirmedAt?: string | null;
+  cancelledAt?: string | null;
+  completedAt?: string | null;
+  qrConfirmedAt?: string | null;
+  conversationId?: string | null;
+  slot?: TimeSlot | null;
+  table?: TableInfo | null;
+  requester?: Partial<Participant> | null;
+  receiver?: Partial<Participant> | null;
 }
+
+// ─── Available Slots Response ─────────────────────────────────────────────────
+
+export interface AvailableSlotsResponse {
+  available: boolean;
+  message?: string;
+  slotsByDay: Record<string, TimeSlot[]>;
+  totalAvailable?: number;
+}
+
+// ─── Agenda Response ──────────────────────────────────────────────────────────
 
 export interface AgendaResponse {
   byDay: Record<string, AgendaItem[]>;
+  totalMeetings: number;
   nextMeeting: (AgendaItem & { countdownMs: number }) | null;
 }
 
-export interface AgendaItem extends Meeting {
-  otherParticipant: Partial<Participant>;
+// ─── Agenda Item ──────────────────────────────────────────────────────────────
+
+export interface AgendaItem {
+  id: string;
+  status: MeetingStatus;
+  statusLabel: string;
+  createdBy: MeetingCreatedBy;
+  requestMessage?: string | null;
+  refuseReason?: string | null;
+  otherParticipant: Participant;
+  slot: { id: string; startTime: string; endTime: string } | null;
+  table: TableInfo | null;
+  conversationId?: string | null;
+  // Flags d'action
   isUpcoming: boolean;
   isPast: boolean;
   needsRating: boolean;
   canCancel: boolean;
   canReschedule: boolean;
   canScanQr: boolean;
-  conversationId?: string;
+  hasRated: boolean;
+}
+
+// ─── Meeting Detail ───────────────────────────────────────────────────────────
+
+export interface MeetingDetail {
+  id: string;
+  status: MeetingStatus;
+  statusLabel: string;
+  createdBy: MeetingCreatedBy;
+  requestMessage: string | null;
+  refuseReason: string | null;
+  confirmedAt: string | null;
+  cancelledAt: string | null;
+  completedAt: string | null;
+  qrConfirmedAt: string | null;
+  conversationId: string | null;
+  slot: { id: string; startTime: string; endTime: string } | null;
+  table: TableInfo | null;
+  requester: Participant | null;
+  receiver: Participant | null;
+  otherParticipant?: Participant;
+  myRating?: {
+    stars: number;
+    comment: string | null;
+    isSubmitted: boolean;
+    createdAt: string;
+  } | null;
+}
+
+// ─── Meeting Request Flow ─────────────────────────────────────────────────────
+
+export interface GenerateMessageResponse {
+  message: string;
+  source: "profile" | "ai";
 }
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
@@ -184,7 +305,7 @@ export interface Notification {
 export interface NotificationsResponse {
   data: Notification[];
   unreadCount: number;
-  pagination: { page: number; limit: number; total: number; totalPages: number };
+  pagination: Pagination;
 }
 
 // ─── PAGINATION ───────────────────────────────────────────────────────────────
@@ -194,4 +315,69 @@ export interface Pagination {
   limit: number;
   total: number;
   totalPages: number;
+}
+// ─── CHAT ─────────────────────────────────────────────────────────────────────
+ 
+export type MessageType = "TEXT" | "SYSTEM" | "MEET_REQUEST_CARD";
+ 
+export interface ChatMessage {
+  id: string;
+  type: MessageType;
+  content: string;
+  metadata?: string | null;
+  senderId: string;
+  isMine: boolean;
+  sender: Partial<Participant> | null;
+  isRead: boolean;
+  deliveredAt: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+ 
+export interface MeetCard {
+  id: string;
+  type: "MEET_REQUEST_CARD";
+  meetingId: string;
+  meetingStatus: string;
+  meetingCreatedBy: "PARTICIPANT" | "ADMIN";
+  requestMessage?: string | null;
+  refuseReason?: string | null;
+  slot?: { id: string; startTime: string; endTime: string } | null;
+  table?: { number: number; room: string } | null;
+  requester?: Partial<Participant> | null;
+  receiver?: Partial<Participant> | null;
+  isMine: boolean;
+  canRespond: boolean;
+  createdAt: string;
+}
+ 
+export interface ConversationItem {
+  id: string;
+  otherParticipant: Partial<Participant> & { isOnline?: boolean };
+  lastMessage: {
+    id: string;
+    content: string;
+    type: MessageType;
+    isMine: boolean;
+    isRead: boolean;
+    createdAt: string;
+  } | null;
+  unreadCount: number;
+  meetingStatus: "NONE" | "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+  meetingId?: string | null;
+  updatedAt: string;
+}
+ 
+export interface ThreadResponse {
+  conversationId: string;
+  otherParticipant: Partial<Participant> & { isOnline?: boolean };
+  messages: ChatMessage[];
+  meetingCards: MeetCard[];
+  hasMore: boolean;
+  oldestMessageCursor: string | null;
+}
+ 
+export interface ConversationsResponse {
+  data: ConversationItem[];
+  total: number;
 }

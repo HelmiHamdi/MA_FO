@@ -39,6 +39,7 @@ model Participant {
   pushSubscription        String?         @db.Text
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
+  hasSeenProfilePrompt    Boolean         @default(false)
   connectionsAsA          Connection[]    @relation("ConnectionA")
   connectionsAsB          Connection[]    @relation("ConnectionB")
   ratingsGiven            MeetingRating[] @relation("RaterParticipant")
@@ -47,6 +48,7 @@ model Participant {
   notifications           Notification[]
   otpCodes                OtpCode[]
   refreshTokens           RefreshToken[]
+  messagesSent    Message[]       @relation("MessageSender")
   swipeBatches            SwipeBatch[]
   swipesReceived          Swipe[]         @relation("SwipeReceiver")
   swipesSent              Swipe[]         @relation("SwipeSender")
@@ -128,6 +130,7 @@ model Connection {
   status         ConnectionStatus @default(PENDING)
   initiatedBy    String
   aiExplanation  String?          @db.Text
+  messages        Message[]
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   participantA   Participant      @relation("ConnectionA", fields: [participantAId], references: [id], onDelete: Cascade)
@@ -229,6 +232,34 @@ model Notification {
   @@map("notifications")
 }
 
+// ─── NOUVEAU model ────────────────────────────────────────────────────────────
+model Message {
+  id             String      @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String      @db.Text
+  type           MessageType @default(TEXT)
+  metadata       String?     @db.Text
+  isRead         Boolean     @default(false)
+  readAt         DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  conversation   Connection  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         Participant @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("messages")
+}
+
+// ─── NOUVEAU enum ─────────────────────────────────────────────────────────────
+enum MessageType {
+  TEXT
+  MEET_REQUEST_CARD
+  SYSTEM
+}
 enum OtpMethod {
   EMAIL
   PHONE
@@ -276,6 +307,7 @@ enum NotificationType {
   CONNECTION_REQUEST_RECEIVED
   CONNECTION_REQUEST_ACCEPTED
   MEETING_REQUEST_RECEIVED
+  CONNECTION_REQUEST_REJECTED
   MEETING_CONFIRMED
   MEETING_REFUSED
   MEETING_REMINDER

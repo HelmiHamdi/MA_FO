@@ -11,11 +11,16 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { DiscoveryService } from './discovery.service';
-import { SwipeDto, ViewAllFilterDto, ConnectionRequestDto, RespondConnectionDto } from './dto';
+import {
+  SwipeDto,
+  ViewAllFilterDto,
+  ConnectionRequestDto,
+  RespondConnectionDto,
+} from './dto';
 
 @ApiTags('Discovery Module')
 @ApiBearerAuth()
@@ -26,9 +31,21 @@ export class DiscoveryController {
 
   // ─── 3.1 SWIPE MODE ──────────────────────────
 
+  // Route canonique
   @Get('swipe/batch')
-  @ApiOperation({ summary: '3.1 Récupère le batch actif (ou en crée un nouveau)' })
+  @ApiOperation({ summary: '3.1 Récupère le batch de swipe actif (ou en crée un nouveau)' })
   getCurrentBatch(@GetUser('id') participantId: string) {
+    return this.discoveryService.getCurrentBatch(participantId);
+  }
+
+  // Alias défensif — couvre GET /discovery/swipe (URL tronquée envoyée par le frontend)
+  // À supprimer une fois corrigé côté frontend/next.config.js
+  @Get('swipe/current')
+  @ApiOperation({
+    summary: '3.1 Alias de swipe/batch (compatibilité temporaire)',
+    deprecated: true,
+  })
+  getCurrentBatchAlias(@GetUser('id') participantId: string) {
     return this.discoveryService.getCurrentBatch(participantId);
   }
 
@@ -42,13 +59,15 @@ export class DiscoveryController {
   // ─── 3.2 VIEW ALL MODE ────────────────────────
 
   @Get('all')
-  @ApiOperation({ summary: '3.2 Liste tous les participants avec filtres classiques + filtre IA' })
+  @ApiOperation({
+    summary: '3.2 Liste tous les participants avec filtres classiques + filtre IA',
+  })
   viewAll(@GetUser('id') participantId: string, @Query() filters: ViewAllFilterDto) {
     return this.discoveryService.viewAll(participantId, filters);
   }
 
   @Get('profile/:id')
-  @ApiOperation({ summary: '3.2 Profil complet d\'un participant (pour View All detail)' })
+  @ApiOperation({ summary: "3.2 Profil complet d'un participant" })
   getProfile(@GetUser('id') viewerId: string, @Param('id') targetId: string) {
     return this.discoveryService.getParticipantProfile(viewerId, targetId);
   }
@@ -58,7 +77,10 @@ export class DiscoveryController {
   @Post('connections/request')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: '3.2 Envoyer une demande de connexion' })
-  sendConnectionRequest(@GetUser('id') senderId: string, @Body() dto: ConnectionRequestDto) {
+  sendConnectionRequest(
+    @GetUser('id') senderId: string,
+    @Body() dto: ConnectionRequestDto,
+  ) {
     return this.discoveryService.sendConnectionRequest(senderId, dto.targetParticipantId);
   }
 
@@ -69,6 +91,10 @@ export class DiscoveryController {
     @Param('connectionId') connectionId: string,
     @Body() dto: RespondConnectionDto,
   ) {
-    return this.discoveryService.respondToConnectionRequest(participantId, connectionId, dto.action);
+    return this.discoveryService.respondToConnectionRequest(
+      participantId,
+      connectionId,
+      dto.action,
+    );
   }
 }

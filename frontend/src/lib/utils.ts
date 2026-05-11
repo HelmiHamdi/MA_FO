@@ -90,3 +90,7 @@ export const parseTags = (tags?: string): string[] => {
   try { return JSON.parse(tags); }
   catch { return tags.split(",").map((t) => t.trim()).filter(Boolean); }
 };
+export const getFullName = (firstName?: string, lastName?: string): string => {
+  if (!firstName && !lastName) return "Participant";
+  return [firstName, lastName].filter(Boolean).join(" ");
+};
