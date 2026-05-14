@@ -29,3 +29,22 @@ Scannez le QR Code généré pour une connexion rapide et sans saisie.
 
 ### 🖥️ Page de Login
 ![Page Login](page%20login.png)
+
+## 🔍 Discovery Module
+
+Le cœur du matching de l'application. Trouvez vos connexions idéales grâce à deux modes de découverte :
+
+- 🔄 **Mode Swipe** — Des lots de 10 profils curatés par l'IA, style Tinder.
+- 📋 **Mode View All** — Répertoire complet avec filtre classique et filtre intelligent IA.
+
+> Les deux modes mènent à des **connexions** entre utilisateurs.
+
+---
+
+### 🖥️ Version Web
+![Discovery Web](discovery.png)
+![Discovery Web](discovery2.png)
+---
+
+### 📱 Version Mobile
+![Discovery Mobile](dicovery-mobile.png)
