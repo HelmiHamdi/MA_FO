@@ -43,50 +43,50 @@ export default function PhoneOtpForm({ onSuccess }: Props) {
   const selectedCountry = COUNTRY_CODES.find((c) => c.code === countryCode)!;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Header */}
       <div>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.375rem", fontWeight: 700, letterSpacing: "-0.02em" }}
-            className="text-white mb-1">
+        <h2 className="auth-card-title" style={{ marginBottom: "0.3rem" }}>
           Connexion par SMS
         </h2>
-        <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
+        <p className="auth-card-sub" style={{ marginBottom: 0 }}>
           Entrez votre numéro de téléphone enregistré
         </p>
       </div>
 
-      <div className="space-y-2">
-        <label style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" }}>
-          Numéro de téléphone
-        </label>
+      {/* Phone field */}
+      <div>
+        <label className="form-label">Numéro de téléphone</label>
         <div className="flex gap-2">
           {/* Country selector */}
-          <div className="relative flex-shrink-0">
+          <div style={{ position: "relative", flexShrink: 0 }}>
             <select
               value={countryCode}
               onChange={(e) => setCountryCode(e.target.value)}
-              className="appearance-none cursor-pointer"
+              className="input-glass"
               style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.09)",
-                borderRadius: "var(--r-lg)",
-                padding: "0.75rem 2.25rem 0.75rem 0.875rem",
-                color: "white",
-                fontSize: "0.9375rem",
-                outline: "none",
-                fontFamily: "var(--font-sans)",
+                paddingRight: "2rem",
+                paddingLeft: "0.75rem",
+                appearance: "none",
+                cursor: "pointer",
+                width: "auto",
               }}
             >
               {COUNTRY_CODES.map((c) => (
-                <option key={c.code} value={c.code} style={{ background: "#0e0c1a" }}>
+                <option key={c.code} value={c.code}
+                  style={{ background: "var(--auth-card-bg)" }}>
                   {c.flag} {c.code}
                 </option>
               ))}
             </select>
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>▾</span>
+            <span style={{
+              position: "absolute", right: "0.6rem", top: "50%",
+              transform: "translateY(-50%)", pointerEvents: "none",
+              color: "var(--auth-label-color)", fontSize: "0.7rem",
+            }}>▾</span>
           </div>
 
-          {/* Phone number */}
+          {/* Number input */}
           <input
             type="tel"
             value={number}
@@ -97,7 +97,7 @@ export default function PhoneOtpForm({ onSuccess }: Props) {
             required
           />
         </div>
-        <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+        <p style={{ fontSize: "0.72rem", color: "var(--auth-label-color)", marginTop: "6px" }}>
           {selectedCountry.flag} {selectedCountry.name} · {countryCode}
         </p>
       </div>
@@ -106,8 +106,7 @@ export default function PhoneOtpForm({ onSuccess }: Props) {
         type="submit"
         disabled={loading || !number.trim()}
         whileTap={{ scale: 0.98 }}
-        className="btn-primary w-full"
-        style={{ height: "3rem" }}
+        className="btn-primary"
       >
         {loading ? (
           <>

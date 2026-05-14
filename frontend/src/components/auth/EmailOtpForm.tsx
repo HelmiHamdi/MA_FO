@@ -30,24 +30,27 @@ export default function EmailOtpForm({ onSuccess }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Header */}
       <div>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.375rem", fontWeight: 700, letterSpacing: "-0.02em" }}
-            className="text-white mb-1">
+        <h2 className="auth-card-title" style={{ marginBottom: "0.3rem" }}>
           Connexion par email
         </h2>
-        <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
+        <p className="auth-card-sub" style={{ marginBottom: 0 }}>
           Entrez votre adresse email enregistrée
         </p>
       </div>
 
-      <div className="space-y-2">
-        <label style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" }}>
-          Adresse email
-        </label>
+      {/* Email field */}
+      <div>
+        <label className="form-label">Adresse email</label>
         <div className="relative">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base" style={{ pointerEvents: "none" }}>
-            ✉️
+          <span style={{
+            position: "absolute", left: "0.875rem", top: "50%",
+            transform: "translateY(-50%)", pointerEvents: "none",
+            color: "var(--auth-icon-color)", display: "flex",
+          }}>
+            <MailIcon />
           </span>
           <input
             type="email"
@@ -55,7 +58,7 @@ export default function EmailOtpForm({ onSuccess }: Props) {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="vous@entreprise.com"
             className="input-glass"
-            style={{ paddingLeft: "2.5rem" }}
+            style={{ paddingLeft: "2.75rem" }}
             autoFocus
             required
           />
@@ -66,8 +69,7 @@ export default function EmailOtpForm({ onSuccess }: Props) {
         type="submit"
         disabled={loading || !email.trim()}
         whileTap={{ scale: 0.98 }}
-        className="btn-primary w-full"
-        style={{ height: "3rem" }}
+        className="btn-primary"
       >
         {loading ? (
           <>
@@ -85,3 +87,9 @@ export default function EmailOtpForm({ onSuccess }: Props) {
     </form>
   );
 }
+
+const MailIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 7l10 7 10-7" />
+  </svg>
+);

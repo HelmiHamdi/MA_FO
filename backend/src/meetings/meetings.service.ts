@@ -288,7 +288,7 @@ export class MeetingsService {
           type: 'MEETING_CONFIRMED',
           title: '✅ Réunion confirmée !',
           body: `${meeting.receiver.firstName} a accepté votre demande — Table ${meeting.table?.number ?? '–'}, Salle ${meeting.table?.room ?? '–'}`,
-          deepLink: '/agenda',
+         deepLink: '/meetings',
           metadata: JSON.stringify({
             meetingId,
             tableNumber: meeting.table?.number,
@@ -489,7 +489,7 @@ export class MeetingsService {
         type: 'MEETING_CANCELLED',
         title: 'Réunion annulée',
         body: `${canceller.firstName} ${canceller.lastName} a annulé la réunion`,
-        deepLink: '/agenda',
+        deepLink: '/meetings',
         metadata: JSON.stringify({ meetingId }),
       }),
       this.notifications.sendPushNotification(otherParticipantId, {
@@ -610,7 +610,7 @@ export class MeetingsService {
         type: 'MEETING_RESCHEDULED',
         title: '📅 Réunion reprogrammée',
         body: `${rescheduler.firstName} a déplacé la réunion au ${formattedDate}`,
-        deepLink: '/agenda',
+        deepLink: '/meetings',
         metadata: JSON.stringify({ meetingId, newSlotId }),
       }),
       this.notifications.sendPushNotification(otherParticipantId, {
@@ -750,7 +750,7 @@ export class MeetingsService {
           type: 'POST_MEETING_RATING',
           title: "Comment s'est passée votre réunion ? ⭐",
           body: 'Prenez 30 secondes pour évaluer cette rencontre',
-          deepLink: `/agenda/rate/${meeting.id}`,
+          deepLink: `/meetings`,
           metadata: JSON.stringify({ meetingId: meeting.id }),
         }),
         this.notifications.sendPushNotification(pid, {
@@ -829,7 +829,7 @@ export class MeetingsService {
             type: 'MEETING_CONFIRMED',
             title: "📅 Réunion planifiée par l'organisateur",
             body: `Réunion avec ${other.firstName} ${other.lastName} — ${tableInfo}`,
-            deepLink: '/agenda',
+           deepLink: '/meetings',
             metadata: JSON.stringify({ meetingId: meeting.id }),
           }),
           this.notifications.sendPushNotification(pid, {

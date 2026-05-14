@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Codes — Tables</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f3f0ff;
+      color: #1e1b4b;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .page-header h1 {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #4c1d95;
+      margin-bottom: 0.5rem;
+    }
+    .page-header p {
+      font-size: 0.9rem;
+      color: #6b7280;
+    }
+    .print-btn {
+      margin-top: 1rem;
+      padding: 10px 24px;
+      background: #7c3aed;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .print-btn:hover { background: #6d28d9; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 2px solid #ede9fe;
+      border-radius: 20px;
+      padding: 1.5rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.875rem;
+      box-shadow: 0 4px 20px rgba(109,40,217,0.10);
+      break-inside: avoid;
+    }
+
+    .card-header { text-align: center; }
+    .table-number {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: #4c1d95;
+      line-height: 1;
+    }
+    .table-room {
+      display: inline-block;
+      margin-top: 5px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #7c3aed;
+      background: #ede9fe;
+      padding: 3px 12px;
+      border-radius: 20px;
+    }
+
+    .qr-wrapper {
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      border: 2px solid #ddd6fe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .token-hint {
+      font-size: 0.65rem;
+      color: #9ca3af;
+      font-family: monospace;
+      letter-spacing: 0.04em;
+      text-align: center;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #7c3aed;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .error-box {
+      max-width: 500px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: #fef2f2;
+      border: 2px solid #fecaca;
+      border-radius: 16px;
+      text-align: center;
+      color: #dc2626;
+    }
+
+    /* ── Print ── */
+    @media print {
+      body { background: #fff; padding: 1cm; }
+      .print-btn, .page-header p { display: none; }
+      .page-header h1 { color: #000; margin-bottom: 1rem; }
+      .card { border: 1px solid #ccc; box-shadow: none; }
+      .table-room { background: #eee; color: #333; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h1>📋 QR Codes — Tables</h1>
+    <p>Placez chaque QR code sur la table correspondante.</p>
+    <button class="print-btn" onclick="window.print()">🖨️ Imprimer / Sauvegarder PDF</button>
+  </div>
+
+  <div id="container" class="loading">⏳ Chargement des tables...</div>
+
+  <script>
+    // ══════════════════════════════════════════════════
+    // ✅ TABLES — Ajoutez / modifiez ici
+    // Ces données viennent de votre base Prisma
+    // ══════════════════════════════════════════════════
+    const TABLES = [
+      { id: "t-01", number: 1, room: "Salle A", qrToken: "table-qr-01" },
+      { id: "t-02", number: 2, room: "Salle A", qrToken: "table-qr-02" },
+      { id: "t-03", number: 3, room: "Salle B", qrToken: "table-qr-03" },
+      { id: "t-04", number: 4, room: "Salle B", qrToken: "table-qr-04" },
+      { id: "t-05", number: 5, room: "Salle C", qrToken: "table-qr-05" },
+    ];
+    // ══════════════════════════════════════════════════
+
+    function renderTables(tables) {
+      const container = document.getElementById("container");
+
+      if (!tables.length) {
+        container.innerHTML = `<div class="error-box">Aucune table trouvée.</div>`;
+        return;
+      }
+
+      container.className = "grid";
+      container.innerHTML = "";
+
+      tables.forEach((table) => {
+        // Créer la card
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const qrId = `qr-${table.id}`;
+
+        card.innerHTML = `
+          <div class="card-header">
+            <div class="table-number">Table ${table.number}</div>
+            <div class="table-room">${table.room}</div>
+          </div>
+          <div class="qr-wrapper">
+            <div id="${qrId}"></div>
+          </div>
+          <div class="token-hint">Token : ${table.qrToken}</div>
+        `;
+
+        container.appendChild(card);
+
+        // Générer le QR code
+        new QRCode(document.getElementById(qrId), {
+          text: table.qrToken,
+          width: 180,
+          height: 180,
+          colorDark: "#1a0533",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H,
+        });
+      });
+    }
+
+    // Lancer le rendu
+    renderTables(TABLES);
+  </script>
+
+</body>
+</html>

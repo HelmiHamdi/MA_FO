@@ -81,7 +81,7 @@ export default function OtpVerifyForm({ destination }: Props) {
       toast.success("Connexion réussie !");
       setTimeout(() => {
         if (data.needsProfileCompletion) router.replace("/profile/complete");
-        else router.replace("/home");
+        else router.replace("/discovery");
       }, 600);
     } catch (err: unknown) {
       const msg = (err as any)?.response?.data?.message ?? (err as any)?.message ?? "Code incorrect";

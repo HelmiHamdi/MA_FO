@@ -54,7 +54,14 @@ export default function NotificationsPage() {
 
   const handleNotifClick = (n: Notification) => {
     if (!n.isRead) markOneMutation.mutate(n.id);
-    if (n.deepLink) router.push(n.deepLink);
+
+    if (n.deepLink) {
+      // ✅ Corriger les anciens deepLinks /agenda/* → /meetings
+      const link = n.deepLink
+        .replace("/agenda/rate/", "/meetings")   // /agenda/rate/ID → /meetings
+        .replace("/agenda", "/meetings");         // /agenda → /meetings
+      router.push(link);
+    }
   };
 
   return (
@@ -119,7 +126,6 @@ export default function NotificationsPage() {
           <p style={{ fontWeight: 600, color: "var(--text-secondary)", fontSize: "1rem" }}>Aucune notification</p>
         </div>
       ) : (
-        /* Desktop: two-column notification grid */
         <div className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
           <AnimatePresence>
             {notifications.map((n, i) => (

@@ -1,6 +1,6 @@
 "use client";
 // src/app/(app)/chat/[conversationId]/page.tsx
-// Module 6.1 — Conversation Thread
+// Module 6.1 — Conversation Thread — Fixed: bubble visibility + light/dark mode
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -104,11 +104,11 @@ function DayDivider({ date }: { date: string }) {
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 0" }}>
-      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
-      <span style={{ fontSize: "0.65rem", fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>
+      <div style={{ flex: 1, height: 1, background: "var(--border-ghost)" }} />
+      <span style={{ fontSize: "0.65rem", fontWeight: 600, color: "var(--text-ghost)", whiteSpace: "nowrap" }}>
         {label}
       </span>
-      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+      <div style={{ flex: 1, height: 1, background: "var(--border-ghost)" }} />
     </div>
   );
 }
@@ -132,7 +132,6 @@ export default function ConversationPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Fetch messages (infinite scroll) ────────────────────────
   const {
     data,
     fetchNextPage,
@@ -155,19 +154,15 @@ export default function ConversationPage() {
   const threadInfo = data?.pages[0];
   const otherParticipant = threadInfo?.otherParticipant;
 
-  // All fetched messages (oldest → newest)
   const fetchedMessages: ChatMessage[] = (data?.pages ?? [])
     .slice()
     .reverse()
     .flatMap((p) => p.messages ?? []);
 
-  // All meet cards (stable, from first page)
   const meetCards: MeetCard[] = threadInfo?.meetingCards ?? [];
 
-  // Merge fetched + local into timeline
   const allMessages = [...fetchedMessages, ...localMessages];
 
-  // Build unified timeline: messages + meet cards sorted by time
   const timeline: TimelineItem[] = [
     ...allMessages,
     ...meetCards.map((c) => ({ ...c, _isCard: true as const })),
@@ -178,7 +173,6 @@ export default function ConversationPage() {
   const grouped = groupByDay(timeline);
   const days = Object.keys(grouped).sort();
 
-  // ── WebSocket ────────────────────────────────────────────────
   const { sendTypingStart, sendTypingStop } = useChat({
     conversationId,
     onNewMessage: (msg) => {
@@ -187,7 +181,6 @@ export default function ConversationPage() {
         if (prev.some((m) => m.id === msg.id)) return prev;
         return [...prev, { ...msg, isMine: false }];
       });
-      // Mark as read immediately (thread is open)
       chatApi.markRead(conversationId, msg.id).catch(() => {});
       scrollToBottom();
     },
@@ -202,7 +195,6 @@ export default function ConversationPage() {
     },
     onMessagesRead: ({ readByParticipantId }) => {
       if (readByParticipantId === otherParticipant?.id) {
-        // Mark all my messages as read in UI
         setReadReceiptMap((prev) => {
           const next = { ...prev };
           allMessages.filter((m) => m.isMine).forEach((m) => (next[m.id] = true));
@@ -210,24 +202,19 @@ export default function ConversationPage() {
         });
       }
     },
-    onMessageDelivered: ({ messageId }) => {
-      // delivered receipt from server
-    },
+    onMessageDelivered: ({ messageId }) => {},
   });
 
-  // ── Typing indicator ─────────────────────────────────────────
   const handleTyping = useCallback(() => {
     sendTypingStart(conversationId);
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
     typingTimerRef.current = setTimeout(() => sendTypingStop(conversationId), 2000);
   }, [conversationId, sendTypingStart, sendTypingStop]);
 
-  // ── Send message ─────────────────────────────────────────────
   const sendMutation = useMutation({
     mutationFn: (content: string) =>
       chatApi.sendMessage(conversationId, { content }),
     onMutate: (content) => {
-      // Optimistic update
       const optimisticMsg: ChatMessage = {
         id: `optimistic-${Date.now()}`,
         type: "TEXT",
@@ -245,7 +232,6 @@ export default function ConversationPage() {
       return { optimisticId: optimisticMsg.id };
     },
     onSuccess: (data, _, ctx) => {
-      // Replace optimistic with real message
       setLocalMessages((prev) =>
         prev.map((m) =>
           m.id === ctx?.optimisticId ? { ...data.data, isMine: true } : m,
@@ -277,7 +263,6 @@ export default function ConversationPage() {
     }
   };
 
-  // ── Mark read on open ────────────────────────────────────────
   useEffect(() => {
     const lastMsg = allMessages.filter((m) => !m.isMine).at(-1);
     if (lastMsg) {
@@ -287,14 +272,12 @@ export default function ConversationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId, data]);
 
-  // ── Set initial online status ────────────────────────────────
   useEffect(() => {
     if (threadInfo?.otherParticipant) {
       setIsOtherOnline(threadInfo.otherParticipant.isOnline ?? false);
     }
   }, [threadInfo]);
 
-  // ── Auto-scroll ───────────────────────────────────────────────
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -306,14 +289,12 @@ export default function ConversationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, localMessages.length]);
 
-  // ── Infinite scroll (upward) ─────────────────────────────────
   const handleScroll = useCallback(() => {
     const el = messagesContainerRef.current;
     if (!el || isFetchingNextPage || !hasNextPage) return;
     if (el.scrollTop < 80) {
       const prevScrollHeight = el.scrollHeight;
       fetchNextPage().then(() => {
-        // Preserve scroll position
         requestAnimationFrame(() => {
           el.scrollTop = el.scrollHeight - prevScrollHeight;
         });
@@ -321,7 +302,6 @@ export default function ConversationPage() {
     }
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  // ── Long-press copy ───────────────────────────────────────────
   const handleLongPress = (content: string) => {
     navigator.clipboard?.writeText(content).then(() => {
       toast.success("Copié !");
@@ -370,7 +350,6 @@ export default function ConversationPage() {
         ref={messagesContainerRef}
         onScroll={handleScroll}
       >
-        {/* Load more indicator */}
         {isFetchingNextPage && (
           <div style={{ display: "flex", justifyContent: "center", padding: "12px 0" }}>
             <div className="spinner" />
@@ -382,7 +361,6 @@ export default function ConversationPage() {
             <DayDivider date={day} />
 
             {grouped[day].map((item) => {
-              // Meet request card
               if ((item as MeetCard).type === "MEET_REQUEST_CARD" || (item as any)._isCard) {
                 const card = item as MeetCard;
                 return (
@@ -407,7 +385,6 @@ export default function ConversationPage() {
 
               const msg = item as ChatMessage;
 
-              // System message
               if (msg.type === "SYSTEM") {
                 return (
                   <div key={msg.id} className="system-msg">
@@ -416,7 +393,6 @@ export default function ConversationPage() {
                 );
               }
 
-              // Text bubble
               const isMine = msg.isMine;
               return (
                 <motion.div
@@ -519,18 +495,18 @@ export default function ConversationPage() {
           height: 100dvh;
           max-width: 680px;
           margin: 0 auto;
-          background: var(--surface-0, #080812);
+          background: var(--bg-base, #080812);
           position: relative;
         }
 
-        /* Header */
+        /* ── Header ── */
         .chat-header {
           display: flex;
           align-items: center;
           gap: 10px;
           padding: 10px 14px;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
-          background: var(--surface-1, #0f0f1a);
+          border-bottom: 1px solid var(--border-ghost);
+          background: var(--bg-surface, #0f0f1a);
           backdrop-filter: blur(12px);
           position: sticky;
           top: 0;
@@ -540,14 +516,14 @@ export default function ConversationPage() {
         .back-btn {
           width: 36px; height: 36px;
           border-radius: 10px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.07);
-          color: var(--text-muted, #94a3b8);
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-subtle);
+          color: var(--text-muted);
           font-size: 1rem; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           transition: background 0.15s; flex-shrink: 0;
         }
-        .back-btn:hover { background: rgba(255,255,255,0.09); }
+        .back-btn:hover { background: var(--bg-card); }
         .header-participant {
           display: flex; align-items: center; gap: 10px;
           flex: 1; text-decoration: none; min-width: 0;
@@ -556,28 +532,28 @@ export default function ConversationPage() {
         .header-name {
           display: block;
           font-size: 0.9375rem; font-weight: 700;
-          color: var(--text-primary, #f1f5f9);
+          color: var(--text-primary);
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .header-status {
           display: block;
           font-size: 0.72rem;
-          color: var(--text-ghost, #475569);
+          color: var(--text-ghost);
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
           transition: color 0.2s;
         }
         .header-status.online { color: #34d399; }
         .profile-btn {
           width: 34px; height: 34px; border-radius: 9px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.07);
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-subtle);
           display: flex; align-items: center; justify-content: center;
           font-size: 0.875rem; text-decoration: none;
           transition: background 0.15s; flex-shrink: 0;
         }
-        .profile-btn:hover { background: rgba(255,255,255,0.08); }
+        .profile-btn:hover { background: var(--bg-card); }
 
-        /* Messages area */
+        /* ── Messages area ── */
         .messages-area {
           flex: 1;
           overflow-y: auto;
@@ -586,12 +562,12 @@ export default function ConversationPage() {
           flex-direction: column;
           gap: 2px;
           scrollbar-width: thin;
-          scrollbar-color: rgba(255,255,255,0.08) transparent;
+          scrollbar-color: var(--border-default) transparent;
         }
         .messages-area::-webkit-scrollbar { width: 4px; }
-        .messages-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+        .messages-area::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 4px; }
 
-        /* Bubbles */
+        /* ── Bubbles ── */
         .bubble-row {
           display: flex;
           align-items: flex-end;
@@ -613,46 +589,49 @@ export default function ConversationPage() {
           cursor: default;
           user-select: text;
         }
+        /* Mine bubble: purple solid */
         .bubble-mine {
           background: var(--brand-500, #7c3aed);
           color: white;
           border-bottom-right-radius: 5px;
         }
+        /* Theirs bubble: visible in both modes */
         .bubble-theirs {
-          background: rgba(255,255,255,0.07);
-          color: var(--text-primary, #f1f5f9);
-          border: 1px solid rgba(255,255,255,0.07);
+          background: var(--bubble-theirs-bg);
+          color: var(--bubble-theirs-text);
+          border: 1px solid var(--bubble-theirs-border);
           border-bottom-left-radius: 5px;
         }
+
         .bubble-meta {
           display: flex; align-items: center; gap: 4px;
           font-size: 0.6rem;
         }
         .meta-right { justify-content: flex-end; }
         .meta-left { justify-content: flex-start; }
-        .time { color: var(--text-ghost, #475569); }
+        .time { color: var(--text-ghost); }
 
-        /* System message */
+        /* ── System message ── */
         .system-msg {
           text-align: center;
           font-size: 0.72rem;
-          color: var(--text-ghost, #475569);
+          color: var(--text-ghost);
           padding: 10px 20px;
           font-style: italic;
         }
 
-        /* Typing bubble */
+        /* ── Typing bubble ── */
         .typing-bubble {
           display: flex; align-items: center; gap: 4px;
           padding: 10px 14px;
-          background: rgba(255,255,255,0.07);
-          border: 1px solid rgba(255,255,255,0.07);
+          background: var(--bubble-theirs-bg);
+          border: 1px solid var(--bubble-theirs-border);
           border-radius: 18px; border-bottom-left-radius: 5px;
           min-width: 52px;
         }
         .dot {
           width: 6px; height: 6px; border-radius: 50%;
-          background: #64748b;
+          background: var(--text-muted);
           animation: typing-bounce 1.4s ease infinite;
         }
         .dot:nth-child(2) { animation-delay: 0.2s; }
@@ -662,28 +641,28 @@ export default function ConversationPage() {
           30% { transform: translateY(-5px); opacity: 1; }
         }
 
-        /* Input area */
+        /* ── Input area ── */
         .input-area {
           padding: 10px 14px 20px;
-          border-top: 1px solid rgba(255,255,255,0.06);
-          background: var(--surface-1, #0f0f1a);
+          border-top: 1px solid var(--border-ghost);
+          background: var(--bg-surface, #0f0f1a);
           flex-shrink: 0;
         }
         .input-container {
           display: flex; align-items: flex-end; gap: 8px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.09);
+          background: var(--input-bg);
+          border: 1px solid var(--input-border);
           border-radius: 16px;
           padding: 8px 8px 8px 14px;
           transition: border-color 0.2s;
         }
         .input-container:focus-within {
-          border-color: rgba(139,92,246,0.4);
+          border-color: var(--input-border-focus);
         }
         .message-input {
           flex: 1;
           background: none; border: none; outline: none;
-          color: var(--text-primary, #f1f5f9);
+          color: var(--text-primary);
           font-size: 0.9375rem;
           line-height: 1.5;
           resize: none;
@@ -692,11 +671,11 @@ export default function ConversationPage() {
           max-height: 120px;
           scrollbar-width: none;
         }
-        .message-input::placeholder { color: var(--text-ghost, #475569); }
+        .message-input::placeholder { color: var(--text-ghost); }
         .send-btn {
           width: 36px; height: 36px; border-radius: 10px;
-          background: rgba(255,255,255,0.07);
-          border: none; color: #475569;
+          background: var(--bg-elevated);
+          border: none; color: var(--text-ghost);
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; transition: all 0.2s;
           flex-shrink: 0;
@@ -715,13 +694,28 @@ export default function ConversationPage() {
           animation: spin 0.7s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Loading spinner */
         .spinner {
           width: 20px; height: 20px; border-radius: 50%;
           border: 2px solid rgba(167,139,250,0.2);
           border-top-color: #a78bfa;
           animation: spin 0.7s linear infinite;
+        }
+      `}</style>
+
+      {/* ── Global CSS variables for bubble theming ── */}
+      <style jsx global>{`
+        /* Dark mode bubbles */
+        :root,
+        [data-theme="dark"] {
+          --bubble-theirs-bg: rgba(255,255,255,0.1);
+          --bubble-theirs-text: rgba(230,237,243,0.95);
+          --bubble-theirs-border: rgba(255,255,255,0.12);
+        }
+        /* Light mode bubbles */
+        [data-theme="light"] {
+          --bubble-theirs-bg: #f0f0f5;
+          --bubble-theirs-text: rgba(17,24,39,0.9);
+          --bubble-theirs-border: rgba(0,0,0,0.1);
         }
       `}</style>
     </div>
@@ -752,5 +746,5 @@ function ConversationSkeleton() {
 }
 
 function sk(w: number | string, h: number, r: number): React.CSSProperties {
-  return { width: w, height: h, borderRadius: r, background: "rgba(255,255,255,0.06)", animation: "shimmer 1.5s ease infinite" };
+  return { width: w, height: h, borderRadius: r, background: "var(--bg-elevated, rgba(255,255,255,0.06))", animation: "shimmer 1.5s ease infinite" };
 }

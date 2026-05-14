@@ -1,4 +1,5 @@
 "use client";
+// src/components/auth/QrLoginForm.tsx
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -94,67 +95,50 @@ export default function QrLoginForm() {
     return () => { qrRef.current?.clear?.().catch(() => {}); };
   }, []);
 
+  const zoneBg = "var(--auth-input-bg)";
+  const zoneBorder = "var(--auth-input-border)";
+
   return (
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h2
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "1.375rem",
-            fontWeight: 700,
-            letterSpacing: "-0.02em",
-          }}
-          className="text-white mb-1"
-        >
+        <h2 className="auth-card-title" style={{ marginBottom: "0.3rem" }}>
           Scan QR Badge
         </h2>
-        <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
+        <p className="auth-card-sub" style={{ marginBottom: 0 }}>
           Scannez le QR code imprimé sur votre badge d&apos;accès
         </p>
       </div>
 
       {/* Zone principale */}
-      <div style={{ minHeight: "280px" }}>
+      <div style={{ minHeight: "260px" }}>
 
         {/* Scanner actif */}
         {scanning && (
-          <motion.div
-            key="scanner"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={{ borderRadius: "16px", overflow: "hidden" }}
-          >
+          <motion.div key="scanner" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            style={{ borderRadius: "16px", overflow: "hidden", border: `1px solid ${zoneBorder}` }}>
             <div id="qr-reader" style={{ width: "100%" }} />
           </motion.div>
         )}
 
         {/* Chargement */}
         {!scanning && loading && (
-          <motion.div
-            key="loading"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             style={{
-              height: "280px",
-              borderRadius: "16px",
-              background: "rgba(124,58,237,0.08)",
-              border: "1px solid rgba(139,92,246,0.25)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "16px",
+              height: "260px", borderRadius: "16px",
+              background: zoneBg, border: `1px solid ${zoneBorder}`,
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: "16px",
             }}
           >
             <span style={{
               width: "40px", height: "40px",
-              border: "3px solid rgba(167,139,250,0.2)",
-              borderTopColor: "#a78bfa",
-              borderRadius: "50%",
-              display: "inline-block",
+              border: "3px solid var(--auth-method-border)",
+              borderTopColor: "#3b7ef8",
+              borderRadius: "50%", display: "inline-block",
               animation: "spin 0.8s linear infinite",
             }} />
-            <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
+            <span style={{ color: "var(--auth-card-sub)", fontSize: "0.875rem" }}>
               Vérification en cours…
             </span>
           </motion.div>
@@ -162,35 +146,29 @@ export default function QrLoginForm() {
 
         {/* Succès */}
         {!scanning && !loading && scanned && !error && (
-          <motion.div
-            key="success"
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             style={{
-              height: "280px",
-              borderRadius: "16px",
-              background: "rgba(52,211,153,0.08)",
-              border: "1px solid rgba(52,211,153,0.3)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "16px",
+              height: "260px", borderRadius: "16px",
+              background: "rgba(22, 163, 74, 0.06)",
+              border: "1px solid rgba(22, 163, 74, 0.2)",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: "16px",
             }}
           >
             <motion.div
               initial={{ scale: 0 }} animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 18 }}
               style={{
-                width: "72px", height: "72px",
-                borderRadius: "50%",
-                background: "rgba(52,211,153,0.15)",
+                width: "68px", height: "68px", borderRadius: "50%",
+                background: "rgba(22, 163, 74, 0.1)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "2rem",
               }}
             >
-              ✅
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
             </motion.div>
-            <span style={{ color: "#34d399", fontSize: "0.9rem", fontWeight: 600 }}>
+            <span style={{ color: "#16a34a", fontSize: "0.9rem", fontWeight: 600 }}>
               QR code reconnu
             </span>
           </motion.div>
@@ -198,55 +176,41 @@ export default function QrLoginForm() {
 
         {/* Idle — bouton scanner */}
         {!scanning && !loading && !scanned && (
-          <motion.button
-            key="idle"
+          <motion.button key="idle"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.98 }}
             onClick={() => { setError(null); setScanning(true); }}
             style={{
-              width: "100%",
-              height: "280px",
+              width: "100%", height: "260px",
               borderRadius: "16px",
-              border: "2px dashed rgba(139,92,246,0.4)",
-              background: "rgba(124,58,237,0.06)",
+              border: "1.5px dashed var(--auth-method-featured-border)",
+              background: "var(--auth-method-featured-bg)",
               cursor: "pointer",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "20px",          // ← espace généreux entre icône et texte
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: "18px",
               transition: "all 0.2s ease",
+              fontFamily: "'DM Sans', sans-serif",
             }}
           >
-            {/* Icône caméra dans un cercle */}
             <div style={{
-              width: "80px",
-              height: "80px",
-              borderRadius: "50%",
-              background: "rgba(124,58,237,0.15)",
-              border: "1.5px solid rgba(139,92,246,0.3)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "2.25rem",
+              width: "76px", height: "76px", borderRadius: "50%",
+              background: "var(--auth-icon-featured-bg)",
+              border: "1px solid var(--auth-icon-featured-border)",
+              display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0,
             }}>
-              📷
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--auth-icon-featured-color)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <path d="M14 14h3v3h-3z M17 17h3v3h-3z M14 20h3" />
+              </svg>
             </div>
-
-            {/* Textes groupés, bien séparés de l'icône */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-              <span style={{
-                color: "var(--text-primary, #fff)",
-                fontSize: "0.9rem",
-                fontWeight: 600,
-              }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "5px" }}>
+              <span style={{ color: "var(--auth-method-title)", fontSize: "0.9rem", fontWeight: 600 }}>
                 Scanner mon badge
               </span>
-              <span style={{
-                color: "var(--text-secondary)",
-                fontSize: "0.8rem",
-              }}>
+              <span style={{ color: "var(--auth-method-desc)", fontSize: "0.78rem" }}>
                 Appuyez pour activer la caméra
               </span>
             </div>
@@ -260,17 +224,16 @@ export default function QrLoginForm() {
           <motion.div
             initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "10px",
-              padding: "12px 16px",
-              borderRadius: "12px",
-              background: "rgba(248,113,113,0.08)",
-              border: "1px solid rgba(248,113,113,0.2)",
+              display: "flex", alignItems: "flex-start", gap: "10px",
+              padding: "12px 16px", borderRadius: "12px",
+              background: "rgba(220, 38, 38, 0.06)",
+              border: "1px solid rgba(220, 38, 38, 0.18)",
             }}
           >
-            <span style={{ fontSize: "1rem", flexShrink: 0, marginTop: "1px" }}>⚠️</span>
-            <p style={{ color: "#fca5a5", fontSize: "0.875rem", margin: 0, lineHeight: 1.5 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: "2px" }}>
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <p style={{ color: "#dc2626", fontSize: "0.85rem", margin: 0, lineHeight: 1.5 }}>
               {error}
             </p>
           </motion.div>
@@ -282,22 +245,19 @@ export default function QrLoginForm() {
         <button
           onClick={() => { setError(null); setScanned(false); setScanning(true); }}
           style={{
-            width: "100%",
-            padding: "10px",
+            width: "100%", padding: "10px 16px",
             borderRadius: "10px",
-            background: "rgba(124,58,237,0.1)",
-            border: "1px solid rgba(139,92,246,0.25)",
-            color: "#a78bfa",
-            fontSize: "0.875rem",
-            fontWeight: 500,
-            cursor: "pointer",
+            background: "var(--auth-method-featured-bg)",
+            border: "1px solid var(--auth-method-featured-border)",
+            color: "var(--auth-icon-featured-color)",
+            fontSize: "0.875rem", fontWeight: 600,
+            cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+            transition: "all 0.15s",
           }}
         >
           Réessayer le scan
         </button>
       )}
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
