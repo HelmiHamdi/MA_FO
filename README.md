@@ -219,7 +219,7 @@ Caméra ouverte et prête à scanner le QR code de la table.
 ### `chat_helmi.png` — Thread avec réunion terminée
 Conversation entre Helmi Hamdi et Fatma incluant une carte **RÉUNION TERMINÉE** et des messages texte.
 
-![chat_helmi](chat_helmi.png)
+![chat_helmi](chate_helmi.png)
 
 - Carte de réunion terminée en haut du thread
 - Messages texte avec bulles et read receipts (double coche)
