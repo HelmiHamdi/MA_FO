@@ -195,7 +195,7 @@ Modal de confirmation avant validation du report.
 ### `scan_meeting.png` — QR : invitation à scanner
 Modal "Confirmer la présence" avant l'ouverture de la caméra.
 
-![scan_meeting](scan_meeting.png)
+![scan_meeting](scanmeeting.png)
 
 - Table assignée rappelée : **Table 1 · Salle A**
 - Bouton **Ouvrir la caméra**
